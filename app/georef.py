@@ -34,7 +34,7 @@ keys = ['keypoints', 'scores', 'descriptors']
 
 TAR_SM_DIM = 480
 SRC_SM_DIM = TAR_SM_DIM
-TAR_LG_DIM = 1080
+TAR_LG_DIM = 720
 SRC_LG_DIM = TAR_LG_DIM
 
 ### HELPER FUNCTIONS
@@ -174,6 +174,11 @@ def generate(vid_in_path:str,
     mkpts0 = kpts0[valid]
     mkpts1 = kpts1[matches[valid]]
     color = cm.jet(confidence[valid])
+    
+    out = make_matching_plot_fast(
+        img_source_lg_gr, img_target_lg_gr_rot, kpts0, kpts1, mkpts0, mkpts1, color, text=[],
+        path=None, show_keypoints=True, small_text=[])
+    plt.imsave("matches.png", out)
 
     print(".", len(mkpts0), end="\n")
     
@@ -194,8 +199,7 @@ def generate(vid_in_path:str,
     
     if vid_out_path is not None:
         pass
-    Homographize(img_target_lg, vid_in_path, vid_out_path, file_out_path,
-                [s1, s2], hom_M, rot_M, RWC_M, frame_fin=40).run()
+    hh = Homographize(img_target_lg, vid_in_path, vid_out_path, file_out_path,
+                [s1, s2], hom_M, rot_M, RWC_M, frame_fin=400)
+    hh.run()
     # 4.5 - If output video, then save frames to buffer. Else, discard.
-    
-    pass

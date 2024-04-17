@@ -2,7 +2,7 @@ import threading
 import cv2
 import os
 import queue
-import tqdm
+from tqdm import tqdm
 import numpy as np
 
 
