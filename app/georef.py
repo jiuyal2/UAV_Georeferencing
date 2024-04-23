@@ -1,17 +1,14 @@
-import csv
 import cv2
 import numpy as np
-import os
 import rasterio
 import torch
-import threading
-import queue
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from tqdm import tqdm
 from video_writer import Homographize
 from lib.superglue.matching import Matching
 from lib.superglue.futils import make_matching_plot_fast
+from georef_helper import *
 
 torch.set_grad_enabled(False)
 
@@ -37,43 +34,6 @@ TAR_SM_DIM = 480
 SRC_SM_DIM = TAR_SM_DIM
 TAR_LG_DIM = 720
 SRC_LG_DIM = TAR_LG_DIM
-
-### HELPER FUNCTIONS
-
-def frame2tensor(frame, device):
-    return torch.from_numpy(frame/255.).float()[None, None].to(device)
-
-gray2 = lambda img : cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-gray3 = lambda img : cv2.cvtColor(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
-
-def resize_to_max_dim(img, maxdim):
-    h,w,*_ = img.shape
-    scale = min(maxdim/h, maxdim/w)
-    newd = int(w*scale), int(h*scale)
-    return cv2.resize(img, newd, cv2.INTER_AREA), scale
-
-def rotate_nocrop(img, angle):
-    h, w, *_ = img.shape
-    R = cv2.getRotationMatrix2D((w//2, h//2), angle, 1)
-    pi = 3.141592
-    TARGET_WIDTH = int(abs(w*np.cos(angle*pi/180)) + abs(h*np.sin(angle*pi/180)))
-    TARGET_HEIGHT = int(abs(w*np.sin(angle*pi/180)) + abs(h*np.cos(angle*pi/180)))
-    R[0,2] += TARGET_WIDTH//2 - w//2
-    R[1,2] += TARGET_HEIGHT//2 - h//2
-    return cv2.warpAffine(img, R, (TARGET_WIDTH, TARGET_HEIGHT)), R
-
-def apply_transforms(pt, *ms):
-    pt = np.array(pt)
-    if len(pt) == 2:
-        pt = np.array([*pt,1])
-    elif len(pt) == 3:
-        pt /= pt[2]
-    else:
-        raise Exception
-    for m in ms:
-        pt = m@pt
-        pt /= pt[2]
-    return pt
 
 ### END HELPER FUNCTIONS
 
@@ -115,7 +75,6 @@ def generate(vid_in_path:str,
     img_target_lg_gr = gray2(img_target_lg)
     
     # 3 - run homography calculations, store homographies
-    
     ### ANGLE FINDING
 
     frame_tensor = frame2tensor(img_source_sm_gr, device)
@@ -123,11 +82,9 @@ def generate(vid_in_path:str,
     last_data = {k+'0': last_data[k] for k in keys}
     last_data['image0'] = frame_tensor
 
-    print(".", end="")
+    best = [0,0]
 
-    best = [0,0,0]
-
-    for ang in range(0, 360, 60):
+    for ang in tqdm(range(0, 360, 60)):
         img_target_sm_gr_rot, rot_M = rotate_nocrop(img_target_sm_gr, ang)
         
         frame_tensor = frame2tensor(img_target_sm_gr_rot, device)
@@ -137,29 +94,21 @@ def generate(vid_in_path:str,
         matches = pred['matches0'][0].cpu().numpy()
         confidence = pred['matching_scores0'][0].cpu().numpy()
 
-        print(".", end="")
-
         valid = matches > -1
         mkpts0 = kpts0[valid]
         mkpts1 = kpts1[matches[valid]]
-        color = cm.jet(confidence[valid])
-
-        print(".", len(mkpts0), np.sum(confidence[valid]), np.sum(confidence[valid])/len(mkpts0))
         
         if np.sum(confidence[valid])/(1+len(mkpts0))**0.5 > best[1]:
             best[0] = ang
             best[1] = np.sum(confidence[valid])/(1+len(mkpts0))**0.5
-            
-    print(best)
     
     ### USING BEST ROTATION
+    print("Rotation search complete.", best)
 
     frame_tensor = frame2tensor(img_source_lg_gr, device)
     last_data = matching.superpoint({'image': frame_tensor})
     last_data = {k+'0': last_data[k] for k in keys}
     last_data['image0'] = frame_tensor
-
-    print(".", end="")
 
     img_target_lg_gr_rot, rot_M = rotate_nocrop(img_target_lg_gr, best[0])
     frame_tensor = frame2tensor(img_target_lg_gr_rot, device)
@@ -168,8 +117,6 @@ def generate(vid_in_path:str,
     kpts1 = pred['keypoints1'][0].cpu().numpy()
     matches = pred['matches0'][0].cpu().numpy()
     confidence = pred['matching_scores0'][0].cpu().numpy()
-
-    print(".", end="")
 
     valid = matches > -1
     mkpts0 = kpts0[valid]
@@ -180,12 +127,10 @@ def generate(vid_in_path:str,
         img_source_lg_gr, img_target_lg_gr_rot, kpts0, kpts1, mkpts0, mkpts1, color, text=[],
         path=None, show_keypoints=True, small_text=[])
     plt.imsave("matches.png", out)
-
-    print(".", len(mkpts0), end="\n")
     
     ### CALCULATED HOMOGRAPHY
 
-    if len(mkpts0) < 10:
+    if len(mkpts0) < 10: # in the future, make this a manual thing? click and drag?
         raise Exception
     hom_M, mask = cv2.findHomography(mkpts0, mkpts1, cv2.RANSAC, 5.0)
     h,w,*_ = img_target_lg_gr_rot.shape

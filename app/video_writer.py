@@ -34,6 +34,27 @@ class Homographize():
     def __init__(self, im_tar, vid_in_path, vid_out_fn = None, transform_fn = None,
                  scales = None, hom_M = None, rot_M = None, ref_M = None,
                  frame_ini = 0, frame_fin = -1):
+        """
+        Rotates a video onto a satellite image given a set of transforms.
+        
+        Parameters:
+            im_tar (numpy.ndarray): The target satellite image. If rescaled from original,
+                provide scale factor in `scales` parameter.
+            vid_in_path (str): Path to input video.
+            vid_out_fn (str): Output video filename path. Include .mp4 suffix.
+            transform_fn (str): Output transform matrices filename path. Include .txt suffix.
+            scales (list[float]): Scale factors for video frames and satellite image.
+            hom_M (numpy.ndarray): The 3x3 homography matrix from video to satellite for scaled images.
+            rot_M (numpy.ndarray): The 2x3 rotation matrix applied to the satellite image before keypoint detection.
+            ref_M (numpy.ndarray): The 3x3 transform matrix from satellite pixels to real world coordinates.
+            frame_ini (int): The frame to use as the first frame of the output video.
+            frame_fin (int): The frame to use as the last frame of the output video. -1 for all frames.
+            
+        Output:
+            Video file of input video rotated onto satellite image.
+            Text file of transform matrices from unscaled video to scaled satellite image.
+            Text file of transform matrices from unscaled video to real world coordinates.
+        """
 
         self.vid_in_path = vid_in_path
         cwd = os.getcwd()
@@ -75,8 +96,6 @@ class Homographize():
         # these new dimensions carry over for all resizes of "prev_img"
         prev_img = cv2.resize(prev_img, (w_nw, h_nw), cv2.INTER_AREA)
         
-        print('fps, n_frames, w, h: ', self.fps, self.n_frames, self.w, self.h)
-        
         orb = cv2.ORB_create()
         FLANN_INDEX_LSH = 6
         index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
@@ -86,6 +105,7 @@ class Homographize():
         prev_kp, prev_des = orb.detectAndCompute(prev_img, mask=None)
         
         for i in tqdm(range(self.frame_ini,self.frame_fin)):
+            # this entire thing may need a try except so the video writer can be released
             success, curr_img = self.cap.read()
             if not success:
                 break
@@ -109,12 +129,21 @@ class Homographize():
             curr_stabilized = cv2.warpAffine(curr_stabilized, self.rot_M, (self.w, self.h), flags = cv2.WARP_INVERSE_MAP)
             # out = unrot @ tar @ est @ curr
             
-            with open(self.transform_fn, 'a') as infile:
+            with open("vid_"+self.transform_fn, 'a') as infile:
+                t = (np.linalg.inv(np.vstack((self.rot_M, (0,0,1))))
+                     @ self.hom_M @ stb_M @ np.diag([1/self.scales[0], 1/self.scales[0], 1]))
+                infile.write(str(list(np.ravel(t))))
+                if (i != self.frame_fin-1):
+                    infile.write("\n")
+            
+            with open("rwc_"+self.transform_fn, 'a') as infile:
                 t = (self.ref_M @ np.diag([1/self.scales[1], 1/self.scales[1], 1])
                      @ np.linalg.inv(np.vstack((self.rot_M, (0,0,1))))
                      @ self.hom_M @ stb_M @ np.diag([1/self.scales[0], 1/self.scales[0], 1]))
-                infile.write(str(list(np.ravel(t))) + "\n")
-            
+                infile.write(str(list(np.ravel(t))))
+                if (i != self.frame_fin-1):
+                    infile.write("\n")
+                
             mask = (curr_stabilized != [0,0,0])
             targ = self.im_tar.copy()[:,:,2::-1]
             targ[mask] = curr_stabilized[mask]
