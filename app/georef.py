@@ -15,7 +15,8 @@ from lib.superglue.futils import make_matching_plot_fast
 
 torch.set_grad_enabled(False)
 
-device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 config = {
     'superpoint': {
         'nms_radius': 4,
