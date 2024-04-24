@@ -4,6 +4,7 @@ import os
 import queue
 from tqdm import tqdm
 import numpy as np
+from detection import DetectionModel
 
 
 ### HOMOGRAPHY AND VIDEO WRITING CLASS
@@ -103,13 +104,26 @@ class Homographize():
         flann = cv2.FlannBasedMatcher(index_params, search_params)
 
         prev_kp, prev_des = orb.detectAndCompute(prev_img, mask=None)
-        
+
+        ##############################################################################################
+        # detection interface
+        det_model = DetectionModel(self.vid_in_path)
+        ##############################################################################################
+
         for i in tqdm(range(self.frame_ini,self.frame_fin)):
             # this entire thing may need a try except so the video writer can be released
             success, curr_img = self.cap.read()
             if not success:
                 break
             
+            ##########################################################################################
+            # detection interface
+            det_model.next_frame()
+            coordinates = det_model.get_coordinate()
+            ids = det_model.get_id()
+            cls = det_model.get_class()
+            ##########################################################################################
+
             curr_img = cv2.resize(curr_img, (w_nw, h_nw), cv2.INTER_AREA)
             
             curr_kp, curr_des = orb.detectAndCompute(curr_img, None)
@@ -144,6 +158,37 @@ class Homographize():
                 if (i != self.frame_fin-1):
                     infile.write("\n")
                 
+            
+            ##########################################################################################
+            # apply the transforms to center of bounding boxes (x, y), then draw them
+            
+            # convert to numpy array
+            coordinates = np.array(coordinates)[:,0,:2]
+
+            homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
+
+            # Combine the homography matrix and the stable matrix
+            combined_matrix = np.dot(self.hom_M, stb_M)
+
+            # Apply the combined transformation by matrix multiplication
+            transformed_coordinates = np.dot(homogeneous_coordinates, combined_matrix.T)
+
+            # Apply the rotation transformation by matrix multiplication
+            transformed_coordinates = np.dot(transformed_coordinates, self.rot_M[:2, :].T)
+
+            # Extract the transformed (x, y) coordinates
+            transformed_coordinates = transformed_coordinates[:, :2]
+
+   
+            for i in range(len(coordinates)):
+
+                x, y = transformed_coordinates[i]
+                cv2.circle(curr_stabilized, (int(x), int(y)), 5, (255, 0, 0), -1)
+                cv2.putText(curr_stabilized, f"{int(ids[i])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 100, 0), 2)
+                cv2.putText(curr_stabilized, f"{int(cls[i])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 100, 255), 2)
+
+            ##########################################################################################
+
             mask = (curr_stabilized != [0,0,0])
             targ = self.im_tar.copy()[:,:,2::-1]
             targ[mask] = curr_stabilized[mask]

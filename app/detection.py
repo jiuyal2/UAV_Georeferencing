@@ -8,7 +8,7 @@ class DetectionModel():
         ultralytics.checks()
         model_dir = "../models/best_yolov8_visdrone207212.pt"
         self.model = YOLO(model_dir)
-        self.results = iter(self.model.track(source=vid_in_path, conf=0.5, iou=0.5, tracker="bytetrack.yaml", stream=True))
+        self.results = iter(self.model.track(source=vid_in_path, conf=0.5, iou=0.5, tracker="bytetrack.yaml", stream=True, verbose=False))
 
     def next_frame(self) -> None:
         self.result = next(self.results)
