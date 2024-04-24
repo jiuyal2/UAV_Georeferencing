@@ -14,9 +14,9 @@ class DetectionModel():
         self.result = next(self.results)
         self.boxes = self.result.boxes
 
-    def get_coordinate(self) -> list[list[tuple]]:
+    def get_coordinate(self) -> Any:
         # Returns the bounding boxes (x, y, height, width next frame)
-        return [box.xywh for box in self.boxes]
+        return [box.xywh.numpy() for box in self.boxes]
     
     def get_id(self) -> Any:
         # Returns the object IDs (next frame)

@@ -163,17 +163,22 @@ class Homographize():
             # apply the transforms to center of bounding boxes (x, y), then draw them
             
             # convert to numpy array
-            coordinates = np.array(coordinates)[:,0,:2]
+            if i==0:
+                print(coordinates[0], "\n", coordinates[1], "\n", np.array(coordinates).shape, 4*"\n")
+            coordinates = np.squeeze(np.array(coordinates)[:,0,:2])
+            if i ==0:
+                print(coordinates[:5])
 
             homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
 
             # Combine the homography matrix and the stable matrix
             # combined_matrix = np.dot(self.hom_M, stb_M)
-            sc1_M = np.diag([1/self.scales[0], 1/self.scales[0], 1])
+            sc1_M = np.diag([self.scales[0], self.scales[0], 1])
             combined_matrix = self.hom_M @ stb_M @ sc1_M
 
             # Apply the combined transformation by matrix multiplication
             transformed_coordinates = np.dot(homogeneous_coordinates, combined_matrix.T)
+            
             
             if i==0:
                 print(coordinates.shape)
@@ -181,20 +186,23 @@ class Homographize():
                 print(transformed_coordinates.shape)
 
             # Apply the rotation transformation by matrix multiplication
-            self.drt_M = np.linalg.inv(np.vstack(self.rot_M, np.ones(3)))
+            self.drt_M = np.linalg.inv(np.vstack((self.rot_M, (0,0,1))))
             transformed_coordinates = np.dot(transformed_coordinates, self.drt_M.T)
 
             # Extract the transformed (x, y) coordinates
+            # print(transformed_coordinates[:5])
+            transformed_coordinates /= transformed_coordinates[:, 2].reshape(-1,1)
+            # print(transformed_coordinates[:5])
             transformed_coordinates = transformed_coordinates[:, :2]
-            print(transformed_coordinates.shape)
+            # print(transformed_coordinates[:5])
 
-   
-            for i in range(len(coordinates)):
+            for j in range(len(coordinates)):
 
-                x, y = transformed_coordinates[i]
+                x, y = transformed_coordinates[j]
+                # x, y = coordinates[j]
                 cv2.circle(curr_stabilized, (int(x), int(y)), 5, (255, 0, 0), -1)
-                cv2.putText(curr_stabilized, f"{int(ids[i])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 100, 0), 2)
-                cv2.putText(curr_stabilized, f"{int(cls[i])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 100, 255), 2)
+                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 100, 0), 2)
+                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 100, 255), 2)
 
             ##########################################################################################
 
