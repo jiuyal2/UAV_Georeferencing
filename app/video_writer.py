@@ -168,16 +168,25 @@ class Homographize():
             homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
 
             # Combine the homography matrix and the stable matrix
-            combined_matrix = np.dot(self.hom_M, stb_M)
+            # combined_matrix = np.dot(self.hom_M, stb_M)
+            sc1_M = np.diag([1/self.scales[0], 1/self.scales[0], 1])
+            combined_matrix = self.hom_M @ stb_M @ sc1_M
 
             # Apply the combined transformation by matrix multiplication
             transformed_coordinates = np.dot(homogeneous_coordinates, combined_matrix.T)
+            
+            if i==0:
+                print(coordinates.shape)
+                print(homogeneous_coordinates.shape)
+                print(transformed_coordinates.shape)
 
             # Apply the rotation transformation by matrix multiplication
-            transformed_coordinates = np.dot(transformed_coordinates, self.rot_M[:2, :].T)
+            self.drt_M = np.linalg.inv(np.vstack(self.rot_M, np.ones(3)))
+            transformed_coordinates = np.dot(transformed_coordinates, self.drt_M.T)
 
             # Extract the transformed (x, y) coordinates
             transformed_coordinates = transformed_coordinates[:, :2]
+            print(transformed_coordinates.shape)
 
    
             for i in range(len(coordinates)):

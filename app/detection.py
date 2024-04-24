@@ -6,7 +6,7 @@ from typing import Any
 class DetectionModel():
     def __init__(self, vid_in_path):
         ultralytics.checks()
-        model_dir = "../models/best_yolov8_visdrone207212.pt"
+        model_dir = "./models/best_yolov8_visdrone207212.pt"
         self.model = YOLO(model_dir)
         self.results = iter(self.model.track(source=vid_in_path, conf=0.5, iou=0.5, tracker="bytetrack.yaml", stream=True, verbose=False))
 
@@ -14,7 +14,7 @@ class DetectionModel():
         self.result = next(self.results)
         self.boxes = self.result.boxes
 
-    def get_coordinate(self) -> Any:
+    def get_coordinate(self) -> list[list[tuple]]:
         # Returns the bounding boxes (x, y, height, width next frame)
         return [box.xywh for box in self.boxes]
     

@@ -40,7 +40,8 @@ SRC_LG_DIM = TAR_LG_DIM
 def generate(vid_in_path:str,
              img_target_path:str,
              file_out_path:str = "transforms.txt",
-             vid_out_path:str = "georef.mp4"):
+             vid_out_path:str = "georef.mp4",
+             frame_fin:int = 400):
     """
     Generate transform-per-frame and warped video output.
     
@@ -49,6 +50,7 @@ def generate(vid_in_path:str,
         img_target_path (str): The path to the *.tif/*.tiff file. Must include projection and transform.
         file_out_path (str): The output filename for the list of transforms per frame.
         vid_out_path (str): The name of the output video. `None` if no output.
+        frame_fin (int): The last frame of the video to be transformed. -1 for all frames.
     """
     
     # Steps:
@@ -146,6 +148,6 @@ def generate(vid_in_path:str,
     if vid_out_path is not None:
         pass
     hh = Homographize(img_target_lg, vid_in_path, vid_out_path, file_out_path,
-                [s1, s2], hom_M, rot_M, RWC_M, frame_fin=400)
+                [s1, s2], hom_M, rot_M, RWC_M, frame_fin=frame_fin)
     hh.run()
     # 4.5 - If output video, then save frames to buffer. Else, discard.
