@@ -6,7 +6,7 @@ from typing import Any
 class DetectionModel():
     def __init__(self):
         ultralytics.checks()
-        model_dir = "./models/best_yolov8_visdrone207212.pt"
+        model_dir = "./src/detector/best_yolov8_visdrone207212.pt"
         self.model = YOLO(model_dir)
 
     def process_frame(self, frame) -> None:
