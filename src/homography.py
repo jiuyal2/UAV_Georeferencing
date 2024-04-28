@@ -12,14 +12,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 config = {
     'superpoint': {
-        'nms_radius': 4,
+        'nms_radius': 3,
         'keypoint_threshold': 0.005,
         'max_keypoints': -1
     },
     'superglue': {
         'weights': 'outdoor',
-        'sinkhorn_iterations': 20,
-        'match_threshold': 0.2,
+        'sinkhorn_iterations': 75,
+        'match_threshold': 0.35,
     }
 }
 
@@ -44,7 +44,7 @@ class Homography():
         img_target_sm_gr = gray2(resize_to_max_dim(img_target, TAR_SM_DIM))
         
         best_transforms = {'ang': 0, 'src': SRC_SM_DIM,
-                           'tar': TAR_SM_DIM, 'met': 0}
+                           'tar': TAR_SM_DIM, 'met': 0, 'len':0}
         
         ########################################################
         ##### ANGLE SEARCH #####################################
@@ -62,6 +62,7 @@ class Homography():
             if np.sum(conf_valid)/(1+len(mkpts0))**0.5 > best_transforms['met']:
                 best_transforms['ang'] = ang
                 best_transforms['met'] = np.sum(conf_valid)/(1+len(mkpts0))**0.5
+                best_transforms['len'] = len(mkpts0)
         
         print("Rotation search complete.", best_transforms)
         
@@ -75,7 +76,7 @@ class Homography():
             
             for t_dim in (480, 640, 800, 960, 1280):
                 img_target_sm_gr = gray2(resize_to_max_dim(img_target, t_dim))
-                img_target_sm_gr_rot, rot_M = rotate_nocrop(img_target_sm_gr, ang)
+                img_target_sm_gr_rot, rot_M = rotate_nocrop(img_target_sm_gr, best_transforms['ang'])
                 image_tensor = frame2tensor(img_target_sm_gr_rot, device)
                 
                 m_kwargs, conf_valid = self.match(frame_tensor, image_tensor)
@@ -85,6 +86,7 @@ class Homography():
                     best_transforms['src'] = s_dim
                     best_transforms['tar'] = t_dim
                     best_transforms['met'] = np.sum(conf_valid)/(1+len(mkpts0))**0.5
+                    best_transforms['len'] = len(mkpts0)
                     
         print("Scale search complete.", best_transforms)
                 
@@ -112,7 +114,7 @@ class Homography():
         ##### HOMOGRAPHY CALCULATION ###########################
         ########################################################
 
-        if len(mkpts0) < 10: # in the future, make this a manual thing? click and drag?
+        if len(kpt_kwargs['mkpts0']) < 10: # in the future, make this a manual thing? click and drag?
             raise Exception
         hom_M, _ = cv2.findHomography(kpt_kwargs['mkpts0'], kpt_kwargs['mkpts1'], cv2.RANSAC, 5.0)
         h,w,*_ = img_target_lg_gr_rot.shape
@@ -121,7 +123,7 @@ class Homography():
         img_source_warp = cv2.warpAffine(img_source_warp, rot_M, (w,h), flags=cv2.WARP_INVERSE_MAP)
         mask = (img_source_warp > 0)
         
-        self.overlay = img_target_lg.copy()
+        self.overlay = img_target_lg.copy()[:,:,::-1]
         self.overlay[mask] = img_source_warp[mask]
         self.best_transforms = best_transforms
         rot_M = np.vstack((rot_M, (0,0,1)))

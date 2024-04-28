@@ -34,9 +34,9 @@ class Georeference():
         video_writer_thread.start()
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
         if frame_fin == -1:
-            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))-1
+            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))
         if frame_fin > int(self.source.get(cv2.CAP_PROP_FRAME_COUNT)):
-            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))-1
+            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))
         
         orb = cv2.ORB_create()
         FLANN_INDEX_LSH = 6
@@ -104,9 +104,9 @@ class Georeference():
             # draw coordinates on stabilized frame
             for j in range(len(coordinates)):
                 x, y = transformed_coordinates[j]
-                cv2.circle(curr_stabilized, (int(x), int(y)), 5, (0, 0, 255), -1)
-                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 100, 0), 2)
-                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 2)
+                cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
+                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 0)
 
             mask = (curr_stabilized != [0,0,0])
             targ = im_tar_sm.copy()[:,:,2::-1]
