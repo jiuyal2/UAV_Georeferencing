@@ -11,9 +11,9 @@ class DetectionModel():
 
     def process_frame(self, frame) -> None:
         result = self.model.track(source=frame, conf=0.5, iou=0.5,
-                                       tracker="bytetrack.yaml", stream=True,
+                                       tracker="bytetrack.yaml",
                                        verbose=False, persist=True)
-        self.boxes = result.boxes
+        self.boxes = result[0].boxes
 
     def get_coordinate(self) -> Any:
         # Returns the bounding boxes (x, y, height, width next frame)
@@ -21,12 +21,12 @@ class DetectionModel():
     
     def get_id(self) -> Any:
         # Returns the object IDs (next frame)
-        return self.boxes.id.copy()[:]
+        return self.boxes.id[:]
 
     def get_confidence(self) -> Any:
         # Returns the object confidence (next frame)
-        return self.boxes.conf.copy()[:]
+        return self.boxes.conf[:]
 
     def get_class(self) -> Any:
         # Returns the object classes (next frame)
-        return self.boxes.cls.copy()[:]
+        return self.boxes.cls[:]

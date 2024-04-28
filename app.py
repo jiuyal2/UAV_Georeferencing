@@ -18,12 +18,12 @@ def generate(vid_in_path, img_in_path, **kwargs):
     _, IMG_SOURCE = cap.read()
     
     with rasterio.open(img_in_path) as dat:
-        IMG_TARGET = np.moveaxis(np.array(dat.read()),0,-1)
+        IMG_TARGET = np.moveaxis(np.array(dat.read()),0,-1)[...,:3]
         RWC_M = np.array(dat.transform).reshape((3,3))
     
     hom = Homography(IMG_SOURCE, IMG_TARGET)
-    geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "0")
-    geo.run(ini,10)
+    geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "2")
+    geo.run(ini,500)
     
     
     '''
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     # parse args
     kwargs = dict(ini=0, fin=20)
 
-    TAG = 212
-    generate(Rf"./assets/{TAG}/{TAG}_vid_destb.mp4", Rf"./assets/{TAG}/{TAG}_tgt1.tif",
+    TAG = 220
+    generate(Rf"./assets/{TAG}/{TAG}_vid_destb.mp4", Rf"./assets/{TAG}/{TAG}_tgt.tif",
              **kwargs)
 
     '''

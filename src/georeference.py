@@ -19,7 +19,7 @@ class Georeference():
         self.rwc_M = rwc_M
         self.hom_M = hom_M
         self.output_prefix = output_prefix
-        self.output_dir = os.path.join(os.path.split(os.getcwd())[0], "output")
+        self.output_dir = os.path.join(os.getcwd(), "output")
         self.vid_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_stb.mp4")
         self.txt_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_tfs.txt")
         self.fps = source.get(cv2.CAP_PROP_FPS)
@@ -33,6 +33,10 @@ class Georeference():
                                                 self.fps, vid_w, vid_h)
         video_writer_thread.start()
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
+        if frame_fin == -1:
+            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))-1
+        if frame_fin > int(self.source.get(cv2.CAP_PROP_FRAME_COUNT)):
+            frame_fin = int(self.source.get(cv2.CAP_PROP_FRAME_COUNT))-1
         
         orb = cv2.ORB_create()
         FLANN_INDEX_LSH = 6
@@ -48,7 +52,7 @@ class Georeference():
         
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
 
-        for i in tqdm(range(self.frame_ini,self.frame_fin)):
+        for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
             if not success:
                 break
@@ -71,9 +75,9 @@ class Georeference():
             stb_M, _ = cv2.findHomography(curr_pts, base_pts, cv2.RANSAC,5.0)
             
             with open(self.txt_out_filename, 'a') as infile:
-                t = (self.ref_M @ self.hom_M @ stb_M)
+                t = (self.rwc_M @ self.hom_M @ stb_M)
                 infile.write(str(list(np.ravel(t))))
-                if (i != self.frame_fin-1):
+                if (i != frame_fin-1):
                     infile.write("\n")
             
             vid_M = np.diag((scale_factor, scale_factor, 1)) @ self.hom_M @ stb_M
@@ -92,10 +96,10 @@ class Georeference():
             coordinates = np.squeeze(np.array(coordinates)[:,0,:2])
             homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
             homogeneous_coordinates = np.dot(homogeneous_coordinates, vid_M.T)
-            transformed_coordinates /= homogeneous_coordinates[:, 2].reshape(-1,1)
+            homogeneous_coordinates /= homogeneous_coordinates[:, 2].reshape(-1,1)
             
             # Extract the transformed (x, y) coordinates
-            transformed_coordinates = transformed_coordinates[:, :2]
+            transformed_coordinates = homogeneous_coordinates[:, :2]
             
             # draw coordinates on stabilized frame
             for j in range(len(coordinates)):
@@ -105,8 +109,8 @@ class Georeference():
                 cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 2)
 
             mask = (curr_stabilized != [0,0,0])
-            targ = self.target.copy()[:,:,2::-1]
+            targ = im_tar_sm.copy()[:,:,2::-1]
             targ[mask] = curr_stabilized[mask]
-            self.queue.put(targ)                
+            vidqueue.put(targ)                
 
-        self.queue.put(None)
+        vidqueue.put(None)

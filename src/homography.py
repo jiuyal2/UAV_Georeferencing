@@ -124,6 +124,7 @@ class Homography():
         self.overlay = img_target_lg.copy()
         self.overlay[mask] = img_source_warp[mask]
         self.best_transforms = best_transforms
+        rot_M = np.vstack((rot_M, (0,0,1)))
         self.HOM_M = np.diag([1/st, 1/st, 1]) @ np.linalg.inv(rot_M) @ hom_M @ np.diag([ss,ss,1])
         
     @staticmethod
