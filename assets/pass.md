@@ -1,1 +1,0 @@
-This is images, videos, etc. that is used in demos, and for any "bling" we add to the repo homepage.
