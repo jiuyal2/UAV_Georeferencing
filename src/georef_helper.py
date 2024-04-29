@@ -5,18 +5,22 @@ import torch
 def frame2tensor(frame, device):
     return torch.from_numpy(frame/255.).float()[None, None].to(device)
 
-gray2 = lambda img : cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-gray3 = lambda img : cv2.cvtColor(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
+def gray2(img:np.ndarray) -> np.ndarray:
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-def resize_to_max_dim(img, maxdim, return_scale = False):
+def gray3(img:np.ndarray) -> np.ndarray:
+    return cv2.cvtColor(gray2(img), cv2.COLOR_GRAY2BGR)
+
+def resize_to_max_dim(img:np.ndarray, maxdim:int, return_scale = False) -> (tuple[np.ndarray, float] | np.ndarray):
     h,w,*_ = img.shape
     scale = min(maxdim/h, maxdim/w)
     newd = int(w*scale), int(h*scale)
+    rimg = np.array(cv2.resize(img, newd, cv2.INTER_AREA))
     if return_scale:
-        return cv2.resize(img, newd, cv2.INTER_AREA), scale    
-    return cv2.resize(img, newd, cv2.INTER_AREA)
+        return rimg, scale    
+    return rimg
 
-def rotate_nocrop(img:np.ndarray, angle:float):
+def rotate_nocrop(img:np.ndarray, angle:float) -> tuple[np.ndarray, np.ndarray]:
     """
     Rotate an image and expand dimensions to avoid cropping.
     

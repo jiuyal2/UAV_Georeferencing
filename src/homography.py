@@ -27,7 +27,7 @@ matching = Matching(config).eval().to(device)
 keys = ['keypoints', 'scores', 'descriptors']
 
 class Homography():
-    def __init__(self, img_source, img_target):
+    def __init__(self, img_source:np.ndarray, img_target:np.ndarray):
         """
         Defines a homography between two outdoor images with potential
         temporal differences, for example, lighting and seasonal.
@@ -35,7 +35,6 @@ class Homography():
         Parameters:
             img_source (ndarray): Gray or RGB image.
             img_target (ndarray): Gray or RGB image.
-            match_output (str): File path to output match plot. None if no output.
         """
         TAR_SM_DIM = 480
         SRC_SM_DIM = TAR_SM_DIM
@@ -131,6 +130,13 @@ class Homography():
         
     @staticmethod
     def match(tensor_src, tensor_tar):
+        """
+        Given source and target image tensors, find matching keypoints.
+        
+        Returns:
+            d_kpt (dict): Dictionary of original keypoints, and matched keypoints per tensor.
+            conf (np.ndarray): Confidence value of matched keypoints.
+        """
         last_data = matching.superpoint({'image': tensor_src})
         last_data = {k+'0': last_data[k] for k in keys}
         last_data['image0'] = tensor_src

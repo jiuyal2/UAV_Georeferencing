@@ -10,9 +10,19 @@ from src.georef_helper import resize_to_max_dim
 class Georeference():
     def __init__(self, source:cv2.VideoCapture, target:np.ndarray,
                  rwc_M:np.ndarray, hom_M:np.ndarray, output_prefix:str=""):
-        """Automatically stabilizes video. Capable of producing a georeferencing
+        """
+        Automatically stabilizes video. Capable of producing a georeferencing
         transform file or georeferenced video. In the future, this class will
-        handle data analysis, like traffic heat maps and speed display."""
+        handle data analysis, like traffic heat maps and speed display.
+        
+        Parameters:
+            source: A cv2.VideoCapture object containing the source aerial video.
+            target: A numpy array containing the image data with shape (H, W, 3)
+            rwc_M: A numpy array containing the transform from target image coordinates
+                to real world coordinates under a specific projection.
+            hom_M: A numpy array containing the transform from source video to target image coordinates.
+            output_prefix: A prefix to add to the default video and text output filenames.
+        """
         
         self.source = source
         self.target = target
@@ -24,7 +34,16 @@ class Georeference():
         self.txt_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_tfs.txt")
         self.fps = source.get(cv2.CAP_PROP_FPS)
     
-    def run(self, frame_ini, frame_fin, resolution = 1080):
+    def run(self, frame_ini:int, frame_fin:int, resolution:int = 1080):
+        """
+        Run the georeferencing object on the provided video and image.
+        Save the results to {prefix}_stb.mp4 and {prefix}_tfs.txt.
+        
+        Parameters:
+            frame_ini: Frame to use as initial frame for output video.
+            frame_fin: Frame to use as final frame for output video.
+            resolution: Optional maximum dimension of output video.
+        """
         im_tar_sm, scale_factor = resize_to_max_dim(self.target, resolution, True)
         vid_h, vid_w, *_ = im_tar_sm.shape
         vidqueue = queue.Queue()
