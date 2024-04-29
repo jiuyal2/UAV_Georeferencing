@@ -1,3 +1,4 @@
+import argparse
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,16 +20,18 @@ from datetime import datetime
 
 torch.set_grad_enabled(False)
 
-def generate(vid_in_path, img_in_path, **kwargs):
-    '''
-    * app.py doesn't use RWC_M directly, this method is just a wrapper for
-        all the class gruntwork
-        * what app.py *does* do is check files exist, make sure parameters are
-        correct, uses cmdline to ask for more info if needed, 
-    - but will output .... what? ... regardless of video or not
-    '''
-    assert os.path.exists(vid_in_path), print("Video DNE")
-    assert os.path.exists(img_in_path), print("Image DNE")
+def generate(vid_in_path:str, img_in_path:str, **kwargs):
+    """
+    Run the georeferencing application on the given video and image.
+    
+    Parameters:
+        vid_in_path (str): Relative or absolute path to input MP4 video.
+        img_in_path (str): Relative or absolute path to input GeoTIFF image.
+        frame_ini (int): Frame to use as initial frame for output video. Default is 0.
+        frame_fin (int): Frame to use as final frame for output video. Default is -1.
+    """
+    assert os.path.exists(vid_in_path), f"Video {vid_in_path} DNE"
+    assert os.path.exists(img_in_path), f"Image {img_in_path} DNE"
     
     cap = cv2.VideoCapture(vid_in_path)
     cap.set(cv2.CAP_PROP_POS_FRAMES, kwargs["frame_ini"])
@@ -40,16 +43,30 @@ def generate(vid_in_path, img_in_path, **kwargs):
     
     hom = Homography(IMG_SOURCE, IMG_TARGET)
     
-    plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_overlay.png", hom.overlay[:,:,::-1])
-    plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_matches.png", hom.out)
+    if kwargs.get("intermediates", True):
+        plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_overlay.png", hom.overlay[:,:,::-1])
+        plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_matches.png", hom.out)
     
     geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "207")
     geo.run(kwargs["frame_ini"], kwargs["frame_fin"])
 
 
 if __name__ == "__main__":
-    # parse args
-    kwargs = dict(frame_ini=0, frame_fin=360)
+    parser = argparse.ArgumentParser(description="Georeference from video to satellite imagery, with"
+                                                 "potential video and transform text file outputs.")
+    # parser.add_argument("--vid_path", type=str, required=True,
+    #                     help="Input path to MP4 video.")
+    # parser.add_argument("--img_path", type=str, required=True,
+    #                     help="Input path to GeoTIFF image.")
+    parser.add_argument("--frame_ini", type=int, default=0,
+                        help="Frame to use as initial frame for output video.")
+    parser.add_argument("--frame_fin", type=int, default=-1,
+                        help="Frame to use as final frame of output video. -1 for last frame.")
+    # parser.add_argument("--intermediates", action='store_true',
+    #                     help="Store intermediate plots of keypoint matching and initial overlay.")
+    
+    kwargs = parser.parse_args()
+    print(kwargs)
 
     TAG = 207
     generate(vid_in_path = Rf"./assets/{TAG}/{TAG}_vid_destb.mp4",

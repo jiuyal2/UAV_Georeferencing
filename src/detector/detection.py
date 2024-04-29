@@ -1,10 +1,13 @@
 import ultralytics
 from ultralytics import YOLO
-import torch
+import numpy as np
 from typing import Any
 
 class DetectionModel():
     def __init__(self):
+        """
+        Wrapper class for YOLOv8's tracking model, with frame-by-frame tracking.
+        Call process_frame() to process the first/next input frame. Convenince methods are provided."""
         ultralytics.checks()
         model_dir = "./src/detector/best_yolov8_visdrone207212.pt"
         self.model = YOLO(model_dir)
@@ -15,7 +18,7 @@ class DetectionModel():
                                        verbose=False, persist=True)
         self.boxes = result[0].boxes
 
-    def get_coordinate(self) -> Any:
+    def get_coordinate(self) -> list[np.ndarray]:
         # Returns the bounding boxes (x, y, height, width next frame)
         return [box.xywh.numpy() for box in self.boxes]
     
