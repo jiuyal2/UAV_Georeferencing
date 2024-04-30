@@ -47,8 +47,8 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
         plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_overlay.png", hom.overlay[:,:,::-1])
         plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_matches.png", hom.out)
     
-    geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "207")
-    geo.run(kwargs["frame_ini"], kwargs["frame_fin"])
+    # geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "UW_PAT")
+    # geo.run(kwargs["frame_ini"], kwargs["frame_fin"])
 
 
 if __name__ == "__main__":
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     #          img_in_path = Rf"./assets/{TAG}/{TAG}_tgt0.tif",
     #          **kwargs)
     
-    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_sw.tif", **vars(kwargs))
+    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
