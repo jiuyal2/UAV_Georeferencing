@@ -68,7 +68,9 @@ if __name__ == "__main__":
     kwargs = parser.parse_args()
     print(kwargs)
 
-    TAG = 207
-    generate(vid_in_path = Rf"./assets/{TAG}/{TAG}_vid_destb.mp4",
-             img_in_path = Rf"./assets/{TAG}/{TAG}_tgt0.tif",
-             **kwargs)
+    # TAG = 207
+    # generate(vid_in_path = Rf"./assets/{TAG}/{TAG}_vid_destb.mp4",
+    #          img_in_path = Rf"./assets/{TAG}/{TAG}_tgt0.tif",
+    #          **kwargs)
+    
+    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_sw.tif", **vars(kwargs))
