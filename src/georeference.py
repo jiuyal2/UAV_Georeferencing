@@ -29,9 +29,9 @@ class Georeference():
         self.rwc_M = rwc_M
         self.hom_M = hom_M
         self.output_prefix = output_prefix
-        self.output_dir = os.path.join(os.getcwd(), "output")
-        self.vid_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_stb.mp4")
-        self.txt_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_tfs.txt")
+        self.output_dir = os.path.join(os.getcwd(), f"output/{self.output_prefix}")
+        self.vid_out_filename = os.path.join(self.output_dir, "stb.mp4")
+        self.txt_out_filename = os.path.join(self.output_dir, "tfs.txt")
         self.fps = source.get(cv2.CAP_PROP_FPS)
     
     def run(self, frame_ini:int, frame_fin:int, resolution:int = 1080):

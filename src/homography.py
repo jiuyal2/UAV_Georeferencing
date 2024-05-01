@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 config = {
     'superpoint': {
-        'nms_radius': 3,
+        'nms_radius': 4,
         'keypoint_threshold': 0.005,
         'max_keypoints': -1
     },

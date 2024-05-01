@@ -29,12 +29,17 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
         img_in_path (str): Relative or absolute path to input GeoTIFF image.
         frame_ini (int): Frame to use as initial frame for output video. Default is 0.
         frame_fin (int): Frame to use as final frame for output video. Default is -1.
+        prefix (str): String to use as a folder name for output files.
     """
     assert os.path.exists(vid_in_path), f"Video {vid_in_path} DNE"
     assert os.path.exists(img_in_path), f"Image {img_in_path} DNE"
     
+    frame_ini = kwargs.get("frame_ini", 0)
+    frame_fin = kwargs.get("frame_fin", -1)
+    prefix = kwargs.get("prefix", datetime.now().strftime('%m%d_%H%M%S'))
+    
     cap = cv2.VideoCapture(vid_in_path)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, kwargs["frame_ini"])
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
     _, IMG_SOURCE = cap.read()
     
     with rasterio.open(img_in_path) as dat:
@@ -44,11 +49,13 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
     hom = Homography(IMG_SOURCE, IMG_TARGET)
     
     if kwargs.get("intermediates", True):
-        plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_overlay.png", hom.overlay[:,:,::-1])
-        plt.imsave(f"output/{datetime.now().strftime('%m%d_%H%M%S')}_matches.png", hom.out)
+        if not os.path.exists(f"output/{prefix}"):
+            os.mkdir(f"output/{prefix}")
+        plt.imsave(f"output/{prefix}/overlay.png", hom.overlay[:,:,::-1])
+        plt.imsave(f"output/{prefix}/matches.png", hom.out)
     
-    # geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, "UW_PAT")
-    # geo.run(kwargs["frame_ini"], kwargs["frame_fin"])
+    geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, prefix)
+    geo.run(frame_ini, frame_fin)
 
 
 if __name__ == "__main__":
@@ -73,4 +80,12 @@ if __name__ == "__main__":
     #          img_in_path = Rf"./assets/{TAG}/{TAG}_tgt0.tif",
     #          **kwargs)
     
-    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
+    # generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
+    
+    generate("assets/153/153_vid_destb.mp4", "assets/153/153_tgt.tif", frame_ini=0, frame_fin=300, prefix="153")
+    generate("assets/180/180_vid_destb.mp4", "assets/180/180_tgt.tif", frame_ini=0, frame_fin=300, prefix="180")
+    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=300, prefix="207")
+    generate("assets/212/212_vid_destb.mp4", "assets/212/212_tgt1.tif", frame_ini=0, frame_fin=300, prefix="212")
+    generate("assets/215/215_vid_destb.mp4", "assets/215/215_tgt.tif", frame_ini=0, frame_fin=300, prefix="215")
+    generate("assets/220/220_vid_destb.mp4", "assets/220/220_tgt.tif", frame_ini=0, frame_fin=300, prefix="220")
+    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", frame_ini=0, frame_fin=300, prefix="UW")
