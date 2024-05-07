@@ -1,7 +1,9 @@
+from scipy import signal
 import numpy as np
 import cv2
 import os
 import queue
+from collections import deque
 from src.detector.detection import DetectionModel
 from tqdm import tqdm
 from src.video_writer import VideoWriterThread
@@ -72,6 +74,7 @@ class Georeference():
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
         
         kine_dict = dict()
+        b,a = signal.butter(2, 0.5)
 
         for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
@@ -102,6 +105,7 @@ class Georeference():
                     infile.write("\n")
             
             vid_M = np.diag((scale_factor, scale_factor, 1)) @ self.hom_M @ stb_M
+            wor_M = self.rwc_M @ self.hom_M @ stb_M
             curr_stabilized = cv2.warpPerspective(curr_img, vid_M, (vid_w, vid_h))
                 
             #########################################################
@@ -116,23 +120,33 @@ class Georeference():
             # apply the transforms to center of bounding boxes (x, y), 
             coordinates = np.squeeze(np.array(coordinates)[:,0,:2])
             homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
-            homogeneous_coordinates = np.dot(homogeneous_coordinates, vid_M.T)
-            homogeneous_coordinates /= homogeneous_coordinates[:, 2].reshape(-1,1)
+            video_coordinates = np.dot(homogeneous_coordinates, vid_M.T)
+            world_coordinates = np.dot(homogeneous_coordinates, wor_M.T)
+            video_coordinates /= video_coordinates[:, 2].reshape(-1,1)
+            world_coordinates /= world_coordinates[:, 2].reshape(-1,1)
             
             # Extract the transformed (x, y) coordinates
-            transformed_coordinates = homogeneous_coordinates[:, :2]
+            world_coordinates = world_coordinates[:, :2]
+            transformed_coordinates = video_coordinates[:, :2]
             
             # draw coordinates on stabilized frame
             # print(kine_dict)
             for j in range(len(coordinates)):
                 x, y = transformed_coordinates[j]
+                wx, wy = world_coordinates[j]
                 
                 kine_list = kine_dict.get(int(ids[j]))
-                if kine_list is not None:
-                    ox, oy, of = kine_list
-                    v = np.linalg.norm([x-ox,y-oy])*self.fps/(i-of)
+                if kine_list is None:
+                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8)]
+                    kine_dict[int(ids[j])] = kine_list
+                ox, oy, of = kine_list
+                ox.append(wx); oy.append(wy); of.append(i)
+                if len(ox) > 2:
+                    nx = signal.filtfilt(b,a,ox, padtype=None)
+                    ny = signal.filtfilt(b,a,oy, padtype=None)
+                    v = np.linalg.norm([nx[-1]-nx[-2], ny[-1]-ny[-2]])*self.fps/(of[-1]-of[-2])
                     cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
-                kine_dict.update({int(ids[j]): [x, y, i]})
+
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
                 cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                 cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 0)
