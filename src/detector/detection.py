@@ -7,9 +7,11 @@ class DetectionModel():
     def __init__(self):
         """
         Wrapper class for YOLOv8's tracking model, with frame-by-frame tracking.
-        Call process_frame() to process the first/next input frame. Convenince methods are provided."""
+        Call process_frame() to process the first/next input frame. Convenince methods are provided.
+        """
         ultralytics.checks()
-        model_dir = "./src/detector/best_yolov9.pt"
+        # model_dir = "./src/detector/best_yolov9.pt"
+        model_dir = "./src/detector/best_yolov8_visdrone207212.pt"
         self.model = YOLO(model_dir)
 
     def process_frame(self, frame) -> None:

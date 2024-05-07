@@ -82,10 +82,4 @@ if __name__ == "__main__":
     
     # generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
     
-    generate("assets/153/153_vid_destb.mp4", "assets/153/153_tgt.tif", frame_ini=0, frame_fin=300, prefix="153")
-    generate("assets/180/180_vid_destb.mp4", "assets/180/180_tgt.tif", frame_ini=0, frame_fin=300, prefix="180")
-    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=300, prefix="207")
-    generate("assets/212/212_vid_destb.mp4", "assets/212/212_tgt1.tif", frame_ini=0, frame_fin=300, prefix="212")
-    generate("assets/215/215_vid_destb.mp4", "assets/215/215_tgt.tif", frame_ini=0, frame_fin=300, prefix="215")
-    generate("assets/220/220_vid_destb.mp4", "assets/220/220_tgt.tif", frame_ini=0, frame_fin=300, prefix="220")
-    generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", frame_ini=0, frame_fin=300, prefix="UW")
+    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=600)

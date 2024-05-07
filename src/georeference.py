@@ -70,6 +70,8 @@ class Georeference():
         base_kp, base_des = orb.detectAndCompute(base_img, mask=None)
         
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
+        
+        kine_dict = dict()
 
         for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
@@ -121,15 +123,23 @@ class Georeference():
             transformed_coordinates = homogeneous_coordinates[:, :2]
             
             # draw coordinates on stabilized frame
+            # print(kine_dict)
             for j in range(len(coordinates)):
                 x, y = transformed_coordinates[j]
+                
+                kine_list = kine_dict.get(int(ids[j]))
+                if kine_list is not None:
+                    ox, oy, of = kine_list
+                    v = np.linalg.norm([x-ox,y-oy])*self.fps/(i-of)
+                    cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
+                kine_dict.update({int(ids[j]): [x, y, i]})
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
-                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                 cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 0)
 
             mask = (curr_stabilized != [0,0,0])
             targ = im_tar_sm.copy()[:,:,2::-1]
             targ[mask] = curr_stabilized[mask]
-            vidqueue.put(targ)                
+            vidqueue.put(targ)
 
         vidqueue.put(None)
