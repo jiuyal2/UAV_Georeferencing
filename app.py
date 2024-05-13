@@ -8,6 +8,7 @@ import torch
 from src.homography import Homography
 from src.georeference import Georeference
 from datetime import datetime
+import time
 
 '''
     TODO
@@ -59,6 +60,8 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
 
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     parser = argparse.ArgumentParser(description="Georeference from video to satellite imagery, with"
                                                  "potential video and transform text file outputs.")
     # parser.add_argument("--vid_path", type=str, required=True,
@@ -82,4 +85,9 @@ if __name__ == "__main__":
     
     # generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
     
-    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=600)
+    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=100)
+
+    end_time = time.time()
+    runtime = end_time - start_time
+
+    print("Total run time is: {:.2f} seconds".format(runtime))

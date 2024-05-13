@@ -17,6 +17,7 @@ class DetectionModel():
     def process_frame(self, frame) -> None:
         result = self.model.track(source=frame, conf=0.5, iou=0.5,
                                        tracker="bytetrack.yaml",
+                                       device = [0, 1],
                                        verbose=False, persist=True)
         self.boxes = result[0].boxes
 

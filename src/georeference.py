@@ -1,4 +1,5 @@
 from scipy import signal
+import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import os
@@ -74,7 +75,9 @@ class Georeference():
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
         
         kine_dict = dict()
-        b,a = signal.butter(2, 0.5)
+        b,a = signal.butter(6, 0.7)
+        speed_map = np.zeros((vid_h, vid_w))
+        temp_f, temp_v, temp_nv, temp_ov, temp_dv = list(), list(), list(), list(), list()
 
         for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
@@ -146,6 +149,13 @@ class Georeference():
                     ny = signal.filtfilt(b,a,oy, padtype=None)
                     v = np.linalg.norm([nx[-1]-nx[-2], ny[-1]-ny[-2]])*self.fps/(of[-1]-of[-2])
                     cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
+                    speed_map[int(y), int(x)] += v**2
+                    if int(ids[j]) == 23:
+                        temp_f.append(i)
+                        temp_v.append(v)
+                        temp_nv.append(nx[-1])
+                        temp_ov.append(wx)
+                        temp_dv.append(nx[-1] - nx[-2])
 
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
                 cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
@@ -157,3 +167,15 @@ class Georeference():
             vidqueue.put(targ)
 
         vidqueue.put(None)
+        
+        kernel = np.array([1.0,2.0,4.0,2.0,1.0]) # Here you would insert your actual kernel of any size
+        speed_map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, speed_map)
+        speed_map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 1, speed_map)
+        speed_map /= (frame_fin - frame_ini)
+        fig, ax = plt.subplots(1,3, figsize=(20,7), facecolor='white')
+        ax[0].plot(temp_f, temp_v)
+        ax[1].plot(temp_f, temp_nv)
+        ax[1].plot(temp_f, temp_ov)
+        ax[2].plot(temp_f, temp_dv)
+        fig.savefig("posplot23.png")
+        plt.imsave("speedmap.png", speed_map)
