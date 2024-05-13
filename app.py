@@ -49,15 +49,19 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
     
     hom = Homography(IMG_SOURCE, IMG_TARGET)
     
+    if not os.path.exists(f"output/{prefix}"):
+        os.mkdir(f"output/{prefix}")
+    
     if kwargs.get("intermediates", True):
-        if not os.path.exists(f"output/{prefix}"):
-            os.mkdir(f"output/{prefix}")
         plt.imsave(f"output/{prefix}/overlay.png", hom.overlay[:,:,::-1])
         plt.imsave(f"output/{prefix}/matches.png", hom.out)
     
     geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, prefix)
     geo.run(frame_ini, frame_fin)
 
+    if kwargs.get("intermediates", True):
+        plt.imsave(f"output/{prefix}/speedmap.png", geo.speed_map)
+        plt.imsave(f"output/{prefix}/volmap.png", geo.volume_map)
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -85,7 +89,7 @@ if __name__ == "__main__":
     
     # generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
     
-    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=100)
+    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=200)
 
     end_time = time.time()
     runtime = end_time - start_time

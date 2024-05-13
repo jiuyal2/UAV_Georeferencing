@@ -5,6 +5,7 @@ import cv2
 import os
 import queue
 from collections import deque
+from itertools import islice
 from src.detector.detection import DetectionModel
 from tqdm import tqdm
 from src.video_writer import VideoWriterThread
@@ -36,6 +37,8 @@ class Georeference():
         self.vid_out_filename = os.path.join(self.output_dir, "stb.mp4")
         self.txt_out_filename = os.path.join(self.output_dir, "tfs.txt")
         self.fps = source.get(cv2.CAP_PROP_FPS)
+        self.speed_map = np.zeros((1,1))
+        self.volume_map = np.zeros((1,1))
     
     def run(self, frame_ini:int, frame_fin:int, resolution:int = 1080):
         """
@@ -75,10 +78,9 @@ class Georeference():
         self.source.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
         
         kine_dict = dict()
-        b,a = signal.butter(6, 0.7)
-        speed_map = np.zeros((vid_h, vid_w))
-        temp_f, temp_v, temp_nv, temp_ov, temp_dv = list(), list(), list(), list(), list()
-
+        self.speed_map = np.zeros((vid_h, vid_w))
+        self.volume_map = np.zeros((vid_h, vid_w))
+        
         for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
             if not success:
@@ -135,31 +137,36 @@ class Georeference():
             # draw coordinates on stabilized frame
             # print(kine_dict)
             for j in range(len(coordinates)):
-                x, y = transformed_coordinates[j]
-                wx, wy = world_coordinates[j]
+                x, y = transformed_coordinates[j] # video frame coordinates
+                wx, wy = world_coordinates[j] # millions of meters, beware!
                 
                 kine_list = kine_dict.get(int(ids[j]))
                 if kine_list is None:
-                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8)]
+                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8), deque(maxlen=20), deque(maxlen=20)]
                     kine_dict[int(ids[j])] = kine_list
-                ox, oy, of = kine_list
-                ox.append(wx); oy.append(wy); of.append(i)
-                if len(ox) > 2:
-                    nx = signal.filtfilt(b,a,ox, padtype=None)
-                    ny = signal.filtfilt(b,a,oy, padtype=None)
-                    v = np.linalg.norm([nx[-1]-nx[-2], ny[-1]-ny[-2]])*self.fps/(of[-1]-of[-2])
-                    cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
-                    speed_map[int(y), int(x)] += v**2
-                    if int(ids[j]) == 23:
-                        temp_f.append(i)
-                        temp_v.append(v)
-                        temp_nv.append(nx[-1])
-                        temp_ov.append(wx)
-                        temp_dv.append(nx[-1] - nx[-2])
-
+                kx, ky, kf, vx, vy = kine_list
+                kx.append(wx); ky.append(wy); kf.append(i); vx.append(x); vy.append(y)
+                postmid = (len(kx)+1)//2
+                premid = (len(kx))//2
+                kx0 = np.mean(list(islice(kx, postmid))); kx1 = np.mean(list(islice(kx, premid, len(kx))))
+                ky0 = np.mean(list(islice(ky, postmid))); ky1 = np.mean(list(islice(ky, premid, len(ky))))
+                kf0 = np.mean(list(islice(kf, postmid))); kf1 = np.mean(list(islice(kf, premid, len(kf))))
+                if kf0 == kf1:
+                    v = 0
+                else:
+                    if abs(kx1-kx0) < 0.5:
+                        kx1 = kx0
+                    if abs(ky1-ky0) < 0.5:
+                        ky1 = ky0
+                    v = np.linalg.norm([kx1-kx0, ky1-ky0])*self.fps/(kf1-kf0)
+                cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
+                self.speed_map[int(y), int(x)] += v
+                self.volume_map[int(y), int(x)] += 1
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
                 cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                 cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 0)
+                if len(vx) > 1:
+                    curr_stabilized = cv2.polylines(curr_stabilized, [np.array(list(zip(vx,vy)), dtype=np.int32)], False, (255,255,0), 2)
 
             mask = (curr_stabilized != [0,0,0])
             targ = im_tar_sm.copy()[:,:,2::-1]
@@ -167,15 +174,14 @@ class Georeference():
             vidqueue.put(targ)
 
         vidqueue.put(None)
+        self.volume_map = self.blur(self.volume_map)
+        self.speed_map = self.blur(self.speed_map)
+        self.speed_map /= (frame_fin - frame_ini)
         
-        kernel = np.array([1.0,2.0,4.0,2.0,1.0]) # Here you would insert your actual kernel of any size
-        speed_map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, speed_map)
-        speed_map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 1, speed_map)
-        speed_map /= (frame_fin - frame_ini)
-        fig, ax = plt.subplots(1,3, figsize=(20,7), facecolor='white')
-        ax[0].plot(temp_f, temp_v)
-        ax[1].plot(temp_f, temp_nv)
-        ax[1].plot(temp_f, temp_ov)
-        ax[2].plot(temp_f, temp_dv)
-        fig.savefig("posplot23.png")
-        plt.imsave("speedmap.png", speed_map)
+    def blur(self, map):
+        base_kernel = [1,1,2,3,4,5,5,5,5,5,5,5,5,3,1]
+        kernel = np.convolve(base_kernel, base_kernel[::-1])
+        kernel = np.clip(kernel, 0, 50)
+        map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 1, map)
+        map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, map)
+        return map
