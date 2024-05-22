@@ -1,12 +1,13 @@
 import argparse
+import importlib
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import rasterio
 import torch
-from src.homography import Homography
-from src.georeference import Georeference
+# from src.homography import Homography
+# from src.georeference import Georeference
 from datetime import datetime
 import time
 
@@ -21,7 +22,7 @@ import time
 
 torch.set_grad_enabled(False)
 
-def generate(vid_in_path:str, img_in_path:str, **kwargs):
+def generate(vid_path:str, img_path:str, **kwargs):
     """
     Run the georeferencing application on the given video and image.
     
@@ -32,18 +33,21 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
         frame_fin (int): Frame to use as final frame for output video. Default is -1.
         prefix (str): String to use as a folder name for output files.
     """
-    assert os.path.exists(vid_in_path), f"Video {vid_in_path} DNE"
-    assert os.path.exists(img_in_path), f"Image {img_in_path} DNE"
+    assert os.path.exists(vid_path), f"Video {vid_path} DNE"
+    assert os.path.exists(img_path), f"Image {img_path} DNE"
+    
+    Homography = getattr(importlib.import_module('src.homography'), 'Homography')
+    Georeference = getattr(importlib.import_module('src.georeference'), 'Georeference')
     
     frame_ini = kwargs.get("frame_ini", 0)
     frame_fin = kwargs.get("frame_fin", -1)
     prefix = kwargs.get("prefix", datetime.now().strftime('%m%d_%H%M%S'))
     
-    cap = cv2.VideoCapture(vid_in_path)
+    cap = cv2.VideoCapture(vid_path)
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
     _, IMG_SOURCE = cap.read()
     
-    with rasterio.open(img_in_path) as dat:
+    with rasterio.open(img_path) as dat:
         IMG_TARGET = np.moveaxis(np.array(dat.read()),0,-1)[...,:3]
         RWC_M = np.array(dat.transform).reshape((3,3))
     
