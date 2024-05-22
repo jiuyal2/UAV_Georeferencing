@@ -62,34 +62,27 @@ def generate(vid_in_path:str, img_in_path:str, **kwargs):
     if kwargs.get("intermediates", True):
         plt.imsave(f"output/{prefix}/speedmap.png", geo.speed_map)
         plt.imsave(f"output/{prefix}/volmap.png", geo.volume_map)
+        plt.imsave(f"output/{prefix}/sample.png", geo.sample_img[:,:,::-1])
 
 if __name__ == "__main__":
     start_time = time.time()
 
     parser = argparse.ArgumentParser(description="Georeference from video to satellite imagery, with"
                                                  "potential video and transform text file outputs.")
-    # parser.add_argument("--vid_path", type=str, required=True,
-    #                     help="Input path to MP4 video.")
-    # parser.add_argument("--img_path", type=str, required=True,
-    #                     help="Input path to GeoTIFF image.")
+    parser.add_argument("--vid_path", type=str, required=True,
+                        help="Input path to MP4 video.")
+    parser.add_argument("--img_path", type=str, required=True,
+                        help="Input path to GeoTIFF image.")
     parser.add_argument("--frame_ini", type=int, default=0,
                         help="Frame to use as initial frame for output video.")
     parser.add_argument("--frame_fin", type=int, default=-1,
                         help="Frame to use as final frame of output video. -1 for last frame.")
-    # parser.add_argument("--intermediates", action='store_true',
-    #                     help="Store intermediate plots of keypoint matching and initial overlay.")
+    parser.add_argument("--intermediates", action='store_true',
+                        help="Store intermediate plots of keypoint matching and initial overlay.")
     
     kwargs = parser.parse_args()
-    print(kwargs)
-
-    # TAG = 207
-    # generate(vid_in_path = Rf"./assets/{TAG}/{TAG}_vid_destb.mp4",
-    #          img_in_path = Rf"./assets/{TAG}/{TAG}_tgt0.tif",
-    #          **kwargs)
-    
-    # generate("assets/UW/pat_destb.mp4", "assets/UW/pat_zoom.tif", **vars(kwargs))
-    
-    generate("assets/207/207_vid_destb.mp4", "assets/207/207_tgt0.tif", frame_ini=0, frame_fin=200)
+    print(vars(kwargs))
+    generate(**vars(kwargs))
 
     end_time = time.time()
     runtime = end_time - start_time

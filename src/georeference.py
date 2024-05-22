@@ -39,6 +39,7 @@ class Georeference():
         self.fps = source.get(cv2.CAP_PROP_FPS)
         self.speed_map = np.zeros((1,1))
         self.volume_map = np.zeros((1,1))
+        self.sample_img = None
     
     def run(self, frame_ini:int, frame_fin:int, resolution:int = 1080):
         """
@@ -159,19 +160,22 @@ class Georeference():
                     if abs(ky1-ky0) < 0.5:
                         ky1 = ky0
                     v = np.linalg.norm([kx1-kx0, ky1-ky0])*self.fps/(kf1-kf0)
-                cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
+                cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,80), 1)
                 self.speed_map[int(y), int(x)] += v
                 self.volume_map[int(y), int(x)] += 1
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
-                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 0)
-                if len(vx) > 1:
-                    curr_stabilized = cv2.polylines(curr_stabilized, [np.array(list(zip(vx,vy)), dtype=np.int32)], False, (255,255,0), 2)
+                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (40, 255, 40), 1)
+                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40, 100, 255), 0)
+                # if len(vx) > 1:
+                #     curr_stabilized = cv2.polylines(curr_stabilized, [np.array(list(zip(vx,vy)), dtype=np.int32)], False, (255,255,0), 2)
 
             mask = (curr_stabilized != [0,0,0])
             targ = im_tar_sm.copy()[:,:,2::-1]
             targ[mask] = curr_stabilized[mask]
             vidqueue.put(targ)
+            
+            if i == int(0.5*(frame_ini + frame_fin)):
+                self.sample_img = targ
 
         vidqueue.put(None)
         self.volume_map = self.blur(self.volume_map)
