@@ -1,5 +1,6 @@
 from scipy import signal
 import matplotlib.pyplot as plt
+import matplotlib.colors as col
 import numpy as np
 import cv2
 import os
@@ -81,6 +82,7 @@ class Georeference():
         kine_dict = dict()
         self.speed_map = np.zeros((vid_h, vid_w))
         self.volume_map = np.zeros((vid_h, vid_w))
+        self.speed_overlay = np.zeros((vid_h, vid_w))
         
         for i in tqdm(range(frame_ini, frame_fin)):
             success, curr_img = self.source.read()
@@ -181,6 +183,20 @@ class Georeference():
         self.volume_map = self.blur(self.volume_map)
         self.speed_map = self.blur(self.speed_map)
         self.speed_map /= (frame_fin - frame_ini)
+        
+        mask = (self.speed_map != 0)
+        targ = im_tar_sm.copy()[:,:,2::-1]
+        
+        cm = plt.get_cmap("inferno")
+        mcm = cm(np.arange(cm.N))
+        mcm[:,-1] = np.linspace(0,1,cm.N)
+        mcm = col.ListedColormap(mcm)
+        colored = (mcm(self.speed_map / np.max(self.speed_map))*255).astype(np.uint8)
+        colomask = colored[mask]
+        
+        targ[mask] = colomask[:,-1][:,None]*colomask[:,:-1] + (1-colomask[:,-1])*targ[mask]
+        
+        self.speed_overlay = targ
         
     def blur(self, map):
         base_kernel = [1,1,2,3,4,5,5,5,5,5,5,5,5,3,1]

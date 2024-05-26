@@ -65,6 +65,7 @@ def generate(vid_path:str, img_path:str, **kwargs):
 
     if kwargs.get("intermediates", True):
         plt.imsave(f"output/{prefix}/speedmap.png", geo.speed_map)
+        plt.imsave(f"output/{prefix}/speedoverlay.png", geo.speed_overlay)
         plt.imsave(f"output/{prefix}/volmap.png", geo.volume_map)
         plt.imsave(f"output/{prefix}/sample.png", geo.sample_img[:,:,::-1])
 
