@@ -189,19 +189,19 @@ class Georeference():
         
         cm = plt.get_cmap("inferno")
         mcm = cm(np.arange(cm.N))
-        mcm[:,-1] = np.linspace(0,1,cm.N)
+        mcm[:,-1] = np.linspace(0,1,cm.N)**0.4
         mcm = col.ListedColormap(mcm)
         colored = (mcm(self.speed_map / np.max(self.speed_map))*255).astype(np.uint8)
         colomask = colored[mask]
         
-        targ[mask] = colomask[:,-1][:,None]*colomask[:,:-1] + (1-colomask[:,-1])*targ[mask]
+        targ[mask] = colomask[:,-1][:,None]/255*colomask[:,:-1] + (255-colomask[:,-1][:,None])/255*targ[mask]
         
         self.speed_overlay = targ
         
     def blur(self, map):
         base_kernel = [1,1,2,3,4,5,5,5,5,5,5,5,5,3,1]
         kernel = np.convolve(base_kernel, base_kernel[::-1])
-        kernel = np.clip(kernel, 0, 50)
+        kernel = np.clip(kernel, 0, 40)
         map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 1, map)
         map = np.apply_along_axis(lambda x: np.convolve(x, kernel, mode='same'), 0, map)
         return map
