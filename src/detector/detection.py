@@ -11,7 +11,7 @@ class DetectionModel():
         """
         ultralytics.checks()
         # model_dir = "./src/detector/best_yolov9.pt"
-        model_dir = "./src/detector/best_yolov8_visdrone207212.pt"
+        model_dir = "./src/detector/v9_best_may27.pt"
         self.model = YOLO(model_dir)
 
     def process_frame(self, frame) -> None:

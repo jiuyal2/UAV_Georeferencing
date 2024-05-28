@@ -41,7 +41,9 @@ def generate(vid_path:str, img_path:str, **kwargs):
     
     frame_ini = kwargs.get("frame_ini", 0)
     frame_fin = kwargs.get("frame_fin", -1)
-    prefix = kwargs.get("prefix", datetime.now().strftime('%m%d_%H%M%S'))
+    prefix = kwargs.get("prefix")
+    if prefix is None:
+        prefix = datetime.now().strftime('%m%d_%H%M%S')
     
     cap = cv2.VideoCapture(vid_path)
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
