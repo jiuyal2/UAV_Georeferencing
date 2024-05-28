@@ -37,9 +37,9 @@ def generate(vid_path:str, img_path:str, **kwargs):
     """
     path = Path(os.getcwd())
     if not Path(vid_path).is_absolute():
-        vid_path = path / vid_path
+        vid_path = str(path / vid_path)
     if not Path(img_path).is_absolute():
-        img_path = path / img_path
+        img_path = str(path / img_path)
     assert os.path.exists(vid_path), f"Video {vid_path} DNE"
     assert os.path.exists(img_path), f"Image {img_path} DNE"
     

@@ -163,8 +163,12 @@ class Georeference():
                         ky1 = ky0
                     v = np.linalg.norm([kx1-kx0, ky1-ky0])*self.fps/(kf1-kf0)
                 cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,80), 1)
-                self.speed_map[int(y), int(x)] += v
-                self.volume_map[int(y), int(x)] += 1
+                try: # if the video is a zoomed out of the tif, this will trip
+                    if x >= 0 and y >= 0:
+                        self.speed_map[int(y), int(x)] += v
+                        self.volume_map[int(y), int(x)] += 1
+                except:
+                    pass
                 cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
                 cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (40, 255, 40), 1)
                 cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40, 100, 255), 0)

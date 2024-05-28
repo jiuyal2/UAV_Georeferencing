@@ -13,7 +13,7 @@ class DetectionModel():
         ultralytics.checks()
         # model_dir = "./src/detector/best_yolov9.pt"
         path = Path(__file__).parent
-        model_dir = path / "./src/detector/v9_best_may27.pt"
+        model_dir = path / "v9_best_may27.pt"
         self.model = YOLO(model_dir)
 
     def process_frame(self, frame) -> None:
