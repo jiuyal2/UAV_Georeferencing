@@ -9,6 +9,7 @@ import torch
 # from src.homography import Homography
 # from src.georeference import Georeference
 from datetime import datetime
+from pathlib import Path
 import time
 
 '''
@@ -21,6 +22,7 @@ import time
 '''
 
 torch.set_grad_enabled(False)
+# print(os.getcwd())
 
 def generate(vid_path:str, img_path:str, **kwargs):
     """
@@ -33,11 +35,20 @@ def generate(vid_path:str, img_path:str, **kwargs):
         frame_fin (int): Frame to use as final frame for output video. Default is -1.
         prefix (str): String to use as a folder name for output files.
     """
+    path = Path(os.getcwd())
+    if not Path(vid_path).is_absolute():
+        vid_path = path / vid_path
+    if not Path(img_path).is_absolute():
+        img_path = path / img_path
     assert os.path.exists(vid_path), f"Video {vid_path} DNE"
     assert os.path.exists(img_path), f"Image {img_path} DNE"
     
-    Homography = getattr(importlib.import_module('src.homography'), 'Homography')
-    Georeference = getattr(importlib.import_module('src.georeference'), 'Georeference')
+    try:
+        Homography = getattr(importlib.import_module('src.homography'), 'Homography')
+        Georeference = getattr(importlib.import_module('src.georeference'), 'Georeference')
+    except:
+        Homography = getattr(importlib.import_module('.src.homography', __package__), 'Homography')
+        Georeference = getattr(importlib.import_module('.src.georeference', __package__), 'Georeference')
     
     frame_ini = kwargs.get("frame_ini", 0)
     frame_fin = kwargs.get("frame_fin", -1)
@@ -56,6 +67,8 @@ def generate(vid_path:str, img_path:str, **kwargs):
     hom = Homography(IMG_SOURCE, IMG_TARGET)
     
     if not os.path.exists(f"output/{prefix}"):
+        if not os.path.exists(f"output"):
+            os.mkdir("output")
         os.mkdir(f"output/{prefix}")
     
     if kwargs.get("intermediates", True):

@@ -4,9 +4,9 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from tqdm import tqdm
-from src.superglue.matching import Matching
-from src.superglue.futils import make_matching_plot_fast
-from src.georef_helper import resize_to_max_dim, frame2tensor, rotate_nocrop, gray2
+from .superglue.matching import Matching
+from .superglue.futils import make_matching_plot_fast
+from .georef_helper import resize_to_max_dim, frame2tensor, rotate_nocrop, gray2
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
