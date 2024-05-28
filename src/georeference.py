@@ -7,10 +7,10 @@ import os
 import queue
 from collections import deque
 from itertools import islice
-from src.detector.detection import DetectionModel
+from .detector.detection import DetectionModel
 from tqdm import tqdm
-from src.video_writer import VideoWriterThread
-from src.georef_helper import resize_to_max_dim
+from .video_writer import VideoWriterThread
+from .georef_helper import resize_to_max_dim
 
 class Georeference():
     def __init__(self, source:cv2.VideoCapture, target:np.ndarray,
