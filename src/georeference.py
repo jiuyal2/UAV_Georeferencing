@@ -35,14 +35,14 @@ class Georeference():
         self.hom_M = hom_M
         self.output_prefix = output_prefix
         self.output_dir = os.path.join(os.getcwd(), f"output/{self.output_prefix}")
-        self.vid_out_filename = os.path.join(self.output_dir, "stb.mp4")
-        self.txt_out_filename = os.path.join(self.output_dir, "tfs.txt")
+        self.vid_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_stb.mp4")
+        self.txt_out_filename = os.path.join(self.output_dir, f"{self.output_prefix}_tfs.txt")
         self.fps = source.get(cv2.CAP_PROP_FPS)
         self.speed_map = np.zeros((1,1))
         self.volume_map = np.zeros((1,1))
         self.sample_img = None
     
-    def run(self, frame_ini:int, frame_fin:int, resolution:int = 1080):
+    def run(self, frame_ini:int, frame_fin:int, /, * , resolution:int = 1080, sample:int = 1):
         """
         Run the georeferencing object on the provided video and image.
         Save the results to {prefix}_stb.mp4 and {prefix}_tfs.txt.
@@ -51,6 +51,7 @@ class Georeference():
             frame_ini: Frame to use as initial frame for output video.
             frame_fin: Frame to use as final frame for output video.
             resolution: Optional maximum dimension of output video.
+            sample: Frame sampling rate for output video.
         """
         im_tar_sm, scale_factor = resize_to_max_dim(self.target, resolution, True)
         vid_h, vid_w, *_ = im_tar_sm.shape
@@ -84,7 +85,7 @@ class Georeference():
         self.volume_map = np.zeros((vid_h, vid_w))
         self.speed_overlay = np.zeros((vid_h, vid_w))
         
-        for i in tqdm(range(frame_ini, frame_fin)):
+        for i in tqdm(range(frame_ini, frame_fin, sample)):
             success, curr_img = self.source.read()
             if not success:
                 break
@@ -108,9 +109,10 @@ class Georeference():
             
             with open(self.txt_out_filename, 'a') as infile:
                 t = (self.rwc_M @ self.hom_M @ stb_M)
-                infile.write(str(list(np.ravel(t))))
-                if (i != frame_fin-1):
-                    infile.write("\n")
+                for k in range(sample):
+                    infile.write(str(list(np.ravel(t))))
+                    if (i != frame_fin-1):
+                        infile.write("\n")
             
             vid_M = np.diag((scale_factor, scale_factor, 1)) @ self.hom_M @ stb_M
             wor_M = self.rwc_M @ self.hom_M @ stb_M
@@ -145,7 +147,7 @@ class Georeference():
                 
                 kine_list = kine_dict.get(int(ids[j]))
                 if kine_list is None:
-                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8), deque(maxlen=20), deque(maxlen=20)]
+                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8), list(), list()]
                     kine_dict[int(ids[j])] = kine_list
                 kx, ky, kf, vx, vy = kine_list
                 kx.append(wx); ky.append(wy); kf.append(i); vx.append(x); vy.append(y)

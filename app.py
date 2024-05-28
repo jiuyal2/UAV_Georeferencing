@@ -53,6 +53,9 @@ def generate(vid_path:str, img_path:str, **kwargs):
     frame_ini = kwargs.get("frame_ini", 0)
     frame_fin = kwargs.get("frame_fin", -1)
     prefix = kwargs.get("prefix")
+    sample = kwargs.get("sample")
+    if sample < 1:
+        sample = 1
     if prefix is None:
         prefix = datetime.now().strftime('%m%d_%H%M%S')
     
@@ -72,17 +75,17 @@ def generate(vid_path:str, img_path:str, **kwargs):
         os.mkdir(f"output/{prefix}")
     
     if kwargs.get("intermediates", True):
-        plt.imsave(f"output/{prefix}/overlay.png", hom.overlay[:,:,::-1])
-        plt.imsave(f"output/{prefix}/matches.png", hom.out)
+        plt.imsave(f"output/{prefix}/{prefix}_overlay.png", hom.overlay[:,:,::-1])
+        plt.imsave(f"output/{prefix}/{prefix}_matches.png", hom.out)
     
     geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, prefix)
-    geo.run(frame_ini, frame_fin)
+    geo.run(frame_ini, frame_fin, sample=sample)
 
     if kwargs.get("intermediates", True):
-        plt.imsave(f"output/{prefix}/speedmap.png", geo.speed_map)
-        plt.imsave(f"output/{prefix}/speedoverlay.png", geo.speed_overlay)
-        plt.imsave(f"output/{prefix}/volmap.png", geo.volume_map)
-        plt.imsave(f"output/{prefix}/sample.png", geo.sample_img[:,:,::-1])
+        plt.imsave(f"output/{prefix}/{prefix}_speedmap.png", geo.speed_map)
+        plt.imsave(f"output/{prefix}/{prefix}_speedoverlay.png", geo.speed_overlay)
+        plt.imsave(f"output/{prefix}/{prefix}_volmap.png", geo.volume_map)
+        plt.imsave(f"output/{prefix}/{prefix}_sample.png", geo.sample_img[:,:,::-1])
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -99,6 +102,8 @@ if __name__ == "__main__":
                         help="Frame to use as final frame of output video. -1 for last frame.")
     parser.add_argument("--prefix", type=str, default=None,
                         help="Optional folder name for saved files")
+    parser.add_argument("--sample", type=int, default=1,
+                        help="Frame sampling rate for video output")
     parser.add_argument("--intermediates", action='store_true',
                         help="Store intermediate plots of keypoint matching and initial overlay.")
     
