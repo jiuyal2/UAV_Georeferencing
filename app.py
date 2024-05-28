@@ -82,6 +82,8 @@ if __name__ == "__main__":
                         help="Frame to use as initial frame for output video.")
     parser.add_argument("--frame_fin", type=int, default=-1,
                         help="Frame to use as final frame of output video. -1 for last frame.")
+    parser.add_argument("--prefix", type=str, default=None,
+                        help="Optional folder name for saved files")
     parser.add_argument("--intermediates", action='store_true',
                         help="Store intermediate plots of keypoint matching and initial overlay.")
     

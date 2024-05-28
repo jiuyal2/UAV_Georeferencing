@@ -15,13 +15,13 @@ At it's fullest potential, the script first calculates a homography from a frame
 ### Usage
 First, install any missing dependencies from [`requirements.txt`](requirements.txt). Up-to-date versions of Python and the libraries are recommended.
 
-Sample videos and satellite images are provided in the [`assets`](assets/) folder. You can pass them as relative or absolute file paths parameters to [`app.py`](app.py) in the command line:
+Sample videos and satellite images are provided in the [`assets`](assets/) folder. You can pass them as relative or absolute file paths parameters to [`app.py`](app.py) in the command line. For example:
 
-`> python app.py foo bar baz`
+`> python app.py --vid_path assets/220/220_vid_destb.mp4 --img_path assets/220/220_tgt.tif`
 
-Optional parameters are available:
+These parameters are available:
 
-- `--foo`: fighters
+- `--vid_path`: The path to the video file. **Required.**
 - `--bar`: bell
 - `--fred`: rogers
 
