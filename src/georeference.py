@@ -129,53 +129,55 @@ class Georeference():
             
             # apply the transforms to center of bounding boxes (x, y), 
             coordinates = np.squeeze(np.array(coordinates)[:,0,:2])
-            homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
-            video_coordinates = np.dot(homogeneous_coordinates, vid_M.T)
-            world_coordinates = np.dot(homogeneous_coordinates, wor_M.T)
-            video_coordinates /= video_coordinates[:, 2].reshape(-1,1)
-            world_coordinates /= world_coordinates[:, 2].reshape(-1,1)
+            if len(coordinates.shape) == 2:
+                homogeneous_coordinates = np.hstack((coordinates, np.ones((len(coordinates), 1))))
+                video_coordinates = np.dot(homogeneous_coordinates, vid_M.T)
+                world_coordinates = np.dot(homogeneous_coordinates, wor_M.T)
+
+                video_coordinates /= video_coordinates[:, 2].reshape(-1,1)
+                world_coordinates /= world_coordinates[:, 2].reshape(-1,1)
             
-            # Extract the transformed (x, y) coordinates
-            world_coordinates = world_coordinates[:, :2]
-            transformed_coordinates = video_coordinates[:, :2]
+                # Extract the transformed (x, y) coordinates
+                world_coordinates = world_coordinates[:, :2]
+                transformed_coordinates = video_coordinates[:, :2]
             
-            # draw coordinates on stabilized frame
-            # print(kine_dict)
-            for j in range(len(coordinates)):
-                x, y = transformed_coordinates[j] # video frame coordinates
-                wx, wy = world_coordinates[j] # millions of meters, beware!
-                
-                kine_list = kine_dict.get(int(ids[j]))
-                if kine_list is None:
-                    kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8), list(), list()]
-                    kine_dict[int(ids[j])] = kine_list
-                kx, ky, kf, vx, vy = kine_list
-                kx.append(wx); ky.append(wy); kf.append(i); vx.append(x); vy.append(y)
-                postmid = (len(kx)+1)//2
-                premid = (len(kx))//2
-                kx0 = np.mean(list(islice(kx, postmid))); kx1 = np.mean(list(islice(kx, premid, len(kx))))
-                ky0 = np.mean(list(islice(ky, postmid))); ky1 = np.mean(list(islice(ky, premid, len(ky))))
-                kf0 = np.mean(list(islice(kf, postmid))); kf1 = np.mean(list(islice(kf, premid, len(kf))))
-                if kf0 == kf1:
-                    v = 0
-                else:
-                    if abs(kx1-kx0) < 0.5:
-                        kx1 = kx0
-                    if abs(ky1-ky0) < 0.5:
-                        ky1 = ky0
-                    v = np.linalg.norm([kx1-kx0, ky1-ky0])*self.fps/(kf1-kf0)
-                cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,80), 1)
-                try: # if the video is a zoomed out of the tif, this will trip
-                    if x >= 0 and y >= 0:
-                        self.speed_map[int(y), int(x)] += v
-                        self.volume_map[int(y), int(x)] += 1
-                except:
-                    pass
-                cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
-                cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (40, 255, 40), 1)
-                cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40, 100, 255), 0)
-                # if len(vx) > 1:
-                #     curr_stabilized = cv2.polylines(curr_stabilized, [np.array(list(zip(vx,vy)), dtype=np.int32)], False, (255,255,0), 2)
+                # draw coordinates on stabilized frame
+                # print(kine_dict)
+                for j in range(len(coordinates)):
+                    x, y = transformed_coordinates[j] # video frame coordinates
+                    wx, wy = world_coordinates[j] # millions of meters, beware!
+                    
+                    kine_list = kine_dict.get(int(ids[j]))
+                    if kine_list is None:
+                        kine_list = [deque(maxlen=8), deque(maxlen=8), deque(maxlen=8), list(), list()]
+                        kine_dict[int(ids[j])] = kine_list
+                    kx, ky, kf, vx, vy = kine_list
+                    kx.append(wx); ky.append(wy); kf.append(i); vx.append(x); vy.append(y)
+                    postmid = (len(kx)+1)//2
+                    premid = (len(kx))//2
+                    kx0 = np.mean(list(islice(kx, postmid))); kx1 = np.mean(list(islice(kx, premid, len(kx))))
+                    ky0 = np.mean(list(islice(ky, postmid))); ky1 = np.mean(list(islice(ky, premid, len(ky))))
+                    kf0 = np.mean(list(islice(kf, postmid))); kf1 = np.mean(list(islice(kf, premid, len(kf))))
+                    if kf0 == kf1:
+                        v = 0
+                    else:
+                        if abs(kx1-kx0) < 0.5:
+                            kx1 = kx0
+                        if abs(ky1-ky0) < 0.5:
+                            ky1 = ky0
+                        v = np.linalg.norm([kx1-kx0, ky1-ky0])*self.fps/(kf1-kf0)
+                    cv2.putText(curr_stabilized, f"{round(v, 2)} ", (int(x+10), int(y+5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,80), 1)
+                    try: # if the video is a zoomed out of the tif, this will trip
+                        if x >= 0 and y >= 0:
+                            self.speed_map[int(y), int(x)] += v
+                            self.volume_map[int(y), int(x)] += 1
+                    except:
+                        pass
+                    cv2.circle(curr_stabilized, (int(x), int(y)), 3, (0, 0, 255), -1)
+                    cv2.putText(curr_stabilized, f"{int(ids[j])} ", (int(x-10), int(y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (40, 255, 40), 1)
+                    cv2.putText(curr_stabilized, f"{int(cls[j])} ", (int(x), int(y + 25)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (40, 100, 255), 0)
+                    # if len(vx) > 1:
+                    #     curr_stabilized = cv2.polylines(curr_stabilized, [np.array(list(zip(vx,vy)), dtype=np.int32)], False, (255,255,0), 2)
 
             mask = (curr_stabilized != [0,0,0])
             targ = im_tar_sm.copy()[:,:,2::-1]
