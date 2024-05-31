@@ -24,6 +24,43 @@ import time
 torch.set_grad_enabled(False)
 # print(os.getcwd())
 
+def test():
+    vid_path = "assets/212/212_vid_destb.mp4"
+    img_path = "assets/212/212_tgt0_S.tiff"
+    frame_ini = 0
+    prefix = datetime.now().strftime('%m%d_%H%M%S')
+    
+    cap = cv2.VideoCapture(vid_path)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ini)
+    _, IMG_SOURCE = cap.read()
+    
+    with rasterio.open(img_path) as dat:
+        IMG_TARGET = np.moveaxis(np.array(dat.read()),0,-1)[...,:3]
+        RWC_M = np.array(dat.transform).reshape((3,3))
+    
+    try:
+        Homography = getattr(importlib.import_module('src.homography'), 'Homography')
+        Georeference = getattr(importlib.import_module('src.georeference'), 'Georeference')
+    except:
+        Homography = getattr(importlib.import_module('.src.homography', __package__), 'Homography')
+        Georeference = getattr(importlib.import_module('.src.georeference', __package__), 'Georeference')
+    
+    hom = Homography(IMG_SOURCE, IMG_TARGET)
+    
+    if not os.path.exists(f"output/{prefix}"):
+        if not os.path.exists(f"output"):
+            os.mkdir("output")
+        os.mkdir(f"output/{prefix}")
+    
+    
+    plt.imsave(f"output/{prefix}/{prefix}_overlay.png", hom.overlay[:,:,::-1])
+    plt.imsave(f"output/{prefix}/{prefix}_matches.png", hom.out)
+    
+    geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, prefix)
+    geo.run(frame_ini, frame_ini+200, sample=1)
+
+
+
 def generate(vid_path:str, img_path:str, **kwargs):
     """
     Run the georeferencing application on the given video and image.
@@ -87,35 +124,39 @@ def generate(vid_path:str, img_path:str, **kwargs):
         plt.imsave(f"output/{prefix}/{prefix}_volmap.png", geo.volume_map)
         plt.imsave(f"output/{prefix}/{prefix}_sample.png", geo.sample_img[:,:,::-1])
 
-generate("assets/153/153_shake_2.mp4", "assets/153/153_tgt.tif", intermediates=True, sample=1)
 
 
-if __name__ == "__main__":
-    pass
-    start_time = time.time()
+test()
 
-    parser = argparse.ArgumentParser(description="Georeference from video to satellite imagery, with"
-                                                 "potential video and transform text file outputs.")
-    parser.add_argument("--vid_path", type=str, required=True,
-                        help="Input path to MP4 video.")
-    parser.add_argument("--img_path", type=str, required=True,
-                        help="Input path to GeoTIFF image.")
-    parser.add_argument("--frame_ini", type=int, default=0,
-                        help="Frame to use as initial frame for output video.")
-    parser.add_argument("--frame_fin", type=int, default=-1,
-                        help="Frame to use as final frame of output video. -1 for last frame.")
-    parser.add_argument("--prefix", type=str, default=None,
-                        help="Optional folder name for saved files")
-    parser.add_argument("--sample", type=int, default=1,
-                        help="Frame sampling rate for video output")
-    parser.add_argument("--intermediates", action='store_true',
-                        help="Store intermediate plots of keypoint matching and initial overlay.")
+# generate("assets/153/153_shake_2.mp4", "assets/153/153_tgt.tif", intermediates=True, sample=1)
+
+
+# if __name__ == "__main__":
+#     pass
+#     start_time = time.time()
+
+#     parser = argparse.ArgumentParser(description="Georeference from video to satellite imagery, with"
+#                                                  "potential video and transform text file outputs.")
+#     parser.add_argument("--vid_path", type=str, required=True,
+#                         help="Input path to MP4 video.")
+#     parser.add_argument("--img_path", type=str, required=True,
+#                         help="Input path to GeoTIFF image.")
+#     parser.add_argument("--frame_ini", type=int, default=0,
+#                         help="Frame to use as initial frame for output video.")
+#     parser.add_argument("--frame_fin", type=int, default=-1,
+#                         help="Frame to use as final frame of output video. -1 for last frame.")
+#     parser.add_argument("--prefix", type=str, default=None,
+#                         help="Optional folder name for saved files")
+#     parser.add_argument("--sample", type=int, default=1,
+#                         help="Frame sampling rate for video output")
+#     parser.add_argument("--intermediates", action='store_true',
+#                         help="Store intermediate plots of keypoint matching and initial overlay.")
     
-    kwargs = parser.parse_args()
-    print(vars(kwargs))
-    generate(**vars(kwargs))
+#     kwargs = parser.parse_args()
+#     print(vars(kwargs))
+#     generate(**vars(kwargs))
 
-    end_time = time.time()
-    runtime = end_time - start_time
+#     end_time = time.time()
+#     runtime = end_time - start_time
 
-    print("Total run time is: {:.2f} seconds".format(runtime))
+#     print("Total run time is: {:.2f} seconds".format(runtime))

@@ -96,11 +96,17 @@ class Georeference():
             
             curr_kp, curr_des = orb.detectAndCompute(curr_img, None)
             matches = flann.knnMatch(base_des, curr_des, k=2)
+            
+            
 
             good = []
             for p in matches:
                 if len(p) > 1 and p[0].distance < 0.7*p[1].distance:
                     good.append(p[0])
+                    
+            if i%10 == 9:
+                mvis = cv2.drawMatches(base_img, base_kp, curr_img, curr_kp, good, None, flags=2+4)
+                plt.imsave(f"mvis_{i}.png", mvis[:,:,::-1])
 
             base_pts = np.float32([ base_kp[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
             curr_pts = np.float32([ curr_kp[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
