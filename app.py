@@ -87,8 +87,6 @@ def generate(vid_path:str, img_path:str, **kwargs):
         plt.imsave(f"output/{prefix}/{prefix}_volmap.png", geo.volume_map)
         plt.imsave(f"output/{prefix}/{prefix}_sample.png", geo.sample_img[:,:,::-1])
 
-generate("assets/153/153_shake_2.mp4", "assets/153/153_tgt.tif", intermediates=True, sample=1)
-
 
 if __name__ == "__main__":
     pass
