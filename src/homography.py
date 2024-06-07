@@ -51,6 +51,8 @@ class Homography():
         
         frame_tensor = frame2tensor(img_source_sm_gr, device)
 
+        # self.rot, self.ax = plt.subplots(2,3,figsize=(24,12))
+
         for ang in tqdm(range(0, 360, 60)):
             img_target_sm_gr_rot, rot_M = rotate_nocrop(img_target_sm_gr, ang)
             image_tensor = frame2tensor(img_target_sm_gr_rot, device)
@@ -62,6 +64,12 @@ class Homography():
                 best_transforms['ang'] = ang
                 best_transforms['met'] = np.sum(conf_valid)/(1+len(mkpts0))**0.5
                 best_transforms['len'] = len(mkpts0)
+            
+            # color = cm.jet(conf_valid)
+            # self.ax[ang//180, (ang%180)//60].imshow(make_matching_plot_fast(
+            #         img_source_sm_gr, img_target_sm_gr_rot, m_kwargs['kpts0'],
+            #         m_kwargs['kpts1'],m_kwargs['mkpts0'],m_kwargs['mkpts1'],
+            #         color, text=[], show_keypoints=True))
         
         print("Rotation search complete.", best_transforms)
         

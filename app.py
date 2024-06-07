@@ -76,7 +76,10 @@ def generate(vid_path:str, img_path:str, **kwargs):
     
     if kwargs.get("intermediates", True):
         plt.imsave(f"output/{prefix}/{prefix}_overlay.png", hom.overlay[:,:,::-1])
+        # hom.rot.savefig(f"output/{prefix}/{prefix}_rotations.png", facecolor="white", bbox_inches="tight")
         plt.imsave(f"output/{prefix}/{prefix}_matches.png", hom.out)
+    
+    # return
     
     geo = Georeference(cap, IMG_TARGET, RWC_M, hom.HOM_M, prefix)
     geo.run(frame_ini, frame_fin, sample=sample)

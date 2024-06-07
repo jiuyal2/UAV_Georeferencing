@@ -1,4 +1,6 @@
 *.DS_Store
 *.pyc
-*.pt
 *.onnx
+src/detector/best_yolov9_data_aug.pt
+src/detector/best_yolov8_visdrone207212.pt
+src/detector/best_yolov9.pt
